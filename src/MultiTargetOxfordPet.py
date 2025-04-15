@@ -1,46 +1,32 @@
 import numpy as np
-import torch
-import torch.nn as nn
 import torchvision.transforms.functional as F
 from torchvision.datasets import OxfordIIITPet
 from torchvision import transforms as T
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
-import torch.optim as optim
-import matplotlib
-matplotlib.use("QtAgg")
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 
-def show_prediction(img, mask):
-
-    plt.figure(figsize=(10, 4))
-    plt.subplot(1, 2, 1)
-    plt.imshow(img)
-    plt.title("Image")
-    plt.axis("off")
-
-    plt.subplot(1, 2, 2)
-    plt.imshow(mask)
-    plt.title("Predicted Segmentation")
-    plt.axis("off")
-    plt.show()
+from src.utils.dataset import ResNetTransform
 
 
 class MultiTargetOxfordPet(Dataset):
-    def __init__(self):
+    def __init__(self, use_breed=False):
         super().__init__()
-        self.base = OxfordIIITPet(root='./data', split='trainval', target_types=['segmentation', 'binary-category'], download=True)
-        self.transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((224, 224)),
-            T.Normalize(mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225])
-        ])
-        self.segm_transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((224, 224), interpolation=Image.NEAREST),
-        ])
+        self.base = OxfordIIITPet(
+            root="./data",
+            split="trainval",
+            target_types=[
+                "segmentation",
+                "category" if use_breed else "binary-category",
+            ],
+            download=True,
+        )
+        self.transform = ResNetTransform
+        self.segm_transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Resize((224, 224), interpolation=Image.NEAREST),
+            ]
+        )
 
     def __getitem__(self, item):
         image, (mask, category) = self.base[item]

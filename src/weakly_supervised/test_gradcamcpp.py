@@ -8,7 +8,11 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import pydensecrf.densecrf as dcrf
-from pydensecrf.utils import unary_from_softmax, create_pairwise_bilateral, create_pairwise_gaussian
+from pydensecrf.utils import (
+    unary_from_softmax,
+    create_pairwise_bilateral,
+    create_pairwise_gaussian,
+)
 
 from src.MultiTargetOxfordPet import OxfordIIITPet, MultiTargetOxfordPet
 
@@ -37,12 +41,13 @@ def apply_crf_to_heatmap(heatmap, input_image, num_classes=2):
 
 
 # Load and preprocess your image
-transform = T.Compose([
-    T.Resize((224, 224)),
-    T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]),
-])
+transform = T.Compose(
+    [
+        T.Resize((224, 224)),
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+)
 
 dataset = MultiTargetOxfordPet()
 
@@ -59,47 +64,58 @@ for _ in range(10):
     input_tensor = img.unsqueeze(0)  # shape: [1, 3, 224, 224]
 
     # Forward pass
-    output  = model(input_tensor)
+    output = model(input_tensor)
 
     # Generate CAM for the top-1 predicted class
 
     class_idx = output.argmax().item()
-    classes = sorted(enumerate(output.detach().numpy().ravel()), key=lambda s: s[1])[-4:]
+    classes = sorted(enumerate(output.detach().numpy().ravel()), key=lambda s: s[1])[
+        -4:
+    ]
     classes = [id for id, _ in classes]
 
     activation_map = cam_extractor(class_idx, output)
 
     # Overlay CAM on image
-    cam = F.interpolate(activation_map[0].unsqueeze(0), (img.size(1), img.size(2)), mode='bilinear').squeeze().squeeze().numpy()
+    cam = (
+        F.interpolate(
+            activation_map[0].unsqueeze(0), (img.size(1), img.size(2)), mode="bilinear"
+        )
+        .squeeze()
+        .squeeze()
+        .numpy()
+    )
     cam_thr = cam > 0.5
 
     mean = torch.tensor([0.485, 0.456, 0.406])
     std = torch.tensor([0.229, 0.224, 0.225])
     denormalized_image = img * std[:, None, None] + mean[:, None, None]
-    denormalized_image = denormalized_image * 255  # Convert back to pixel range [0, 255]
-    denormalized_image = denormalized_image.permute(1,2,0).byte().cpu().numpy()  # Convert to numpy for CRF
+    denormalized_image = (
+        denormalized_image * 255
+    )  # Convert back to pixel range [0, 255]
+    denormalized_image = (
+        denormalized_image.permute(1, 2, 0).byte().cpu().numpy()
+    )  # Convert to numpy for CRF
     crf = apply_crf_to_heatmap(cam, denormalized_image)
 
     # Show result
-    plt.figure(figsize=(12,4))
+    plt.figure(figsize=(12, 4))
     plt.subplot(1, 3, 1)
     plt.imshow(denormalized_image)
     plt.imshow(cam_thr, alpha=0.5)
-    plt.axis('off')
+    plt.axis("off")
     plt.title(f"Grad-CAM++ for class {classes}")
 
     plt.subplot(1, 3, 2)
     plt.imshow(denormalized_image)
     plt.imshow(crf, alpha=0.5)
-    plt.axis('off')
+    plt.axis("off")
     plt.title(f"CRF")
-
 
     plt.subplot(1, 3, 3)
     plt.imshow(denormalized_image)
     plt.imshow(masks.permute(1, 2, 0).numpy(), alpha=0.5)
-    plt.axis('off')
+    plt.axis("off")
     plt.title(f"Target segmentation")
-
 
     plt.show()
