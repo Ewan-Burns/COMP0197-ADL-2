@@ -10,7 +10,6 @@ import torch.optim as optim
 import matplotlib
 matplotlib.use("QtAgg")
 import matplotlib.pyplot as plt
-from unet import UNet
 from tqdm import tqdm
 
 def show_prediction(img, mask):
