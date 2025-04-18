@@ -12,6 +12,7 @@ from src.MultiTargetOxfordPet import MultiTargetOxfordPet
 from src.utils.dataset import TrainTestSplit
 from src.utils.dice_loss import DiceLoss
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def show_prediction(img_tensor, mask_pred, act_mask, output):
     img = img_tensor.permute(1, 2, 0).cpu().numpy()
@@ -57,7 +58,7 @@ def TrainModel(num_epochs=5, loss_balance=np.array([0.5, 0.5]), out_name=""):
     test_loader = DataLoader(train_set, batch_size=16, num_workers=8)
 
     model = CreateDeepLabV3(num_classes=3)
-    model = model.cuda()
+    model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
     dice_loss = DiceLoss()
@@ -71,8 +72,10 @@ def TrainModel(num_epochs=5, loss_balance=np.array([0.5, 0.5]), out_name=""):
         bar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=True)
 
         for imgs, masks in bar:
-            imgs = imgs.cuda()
-            masks = masks.squeeze(1).cuda()
+            # imgs = imgs.cuda()
+            imgs = imgs.to(device)
+            # masks = masks.squeeze(1).cuda()
+            masks = masks.squeeze(1).to(device)
 
             optimizer.zero_grad()
             output = model(imgs)["out"]
@@ -97,8 +100,10 @@ def TrainModel(num_epochs=5, loss_balance=np.array([0.5, 0.5]), out_name=""):
         bar = tqdm(test_loader, desc=f"Validation", leave=True)
 
         for imgs, masks in bar:
-            imgs = imgs.cuda()
-            masks = masks.squeeze(1).cuda()
+            # imgs = imgs.cuda()
+            imgs = imgs.to(device) 
+            # masks = masks.squeeze(1).cuda()
+            masks = masks.squeeze(1).to(device)
 
             optimizer.zero_grad()
             output = model(imgs)["out"]
@@ -121,14 +126,16 @@ def TrainModel(num_epochs=5, loss_balance=np.array([0.5, 0.5]), out_name=""):
 
 def TestModel(model, train_set):
     model.eval()
-    model.cuda()
+    model = model.to(device)
     with torch.no_grad():
 
         for i in range(50):
             idx = np.random.randint(len(train_set))
             img, mask = train_set[idx]
-            img = img.cuda()
-            mask = mask.cuda()
+            # img = img.cuda()
+            img.to(device)
+            # mask = mask.cuda()
+            mask.to(device)
             output = model(img.unsqueeze(0))["out"]
             pred = output.argmax(1).cpu().squeeze(0)
             show_prediction(img, pred, mask, output)
