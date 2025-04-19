@@ -19,7 +19,8 @@ def show_prediction(img_tensor, mask_pred, act_mask, output):
     target = act_mask.squeeze().cpu().numpy()
 
     dice_loss = DiceLoss()
-    loss = dice_loss(output, act_mask)
+    # Add batch dimension to act_mask before passing to dice_loss
+    loss = dice_loss(output, act_mask.unsqueeze(0))
 
     plt.figure(figsize=(10, 4))
     plt.subplot(1, 3, 1)
