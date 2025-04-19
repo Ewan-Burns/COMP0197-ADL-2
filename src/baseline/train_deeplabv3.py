@@ -141,7 +141,9 @@ def LoadModel(model_path, num_classes=3, device='cpu'):
     # Use pretrained=False when loading state dict
     model = CreateDeepLabV3(num_classes=num_classes, pretrained=False)
     # Use map_location to load onto the correct device
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    # Set strict=False to ignore unexpected keys like aux_classifier
+    state_dict = torch.load(model_path, map_location=device)
+    model.load_state_dict(state_dict, strict=False)
     model.to(device) # Ensure model is on the device
     return model
 

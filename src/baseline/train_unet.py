@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import numpy as np # Import numpy
 from .unet import UNet # Correct relative import to specify the module file
 from src.utils.dice_loss import DiceLoss # Import the DiceLoss CLASS
 from tqdm import tqdm
