@@ -23,7 +23,7 @@ def load_model(model_type, model_path, num_classes, device):
     else:
         raise ValueError(f"Unknown model type: {model_type}. Choose 'unet', 'deeplabv3', or 'resnet_sec'.")
 
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=device), strict=False)
     model.to(device)
     model.eval() # set model to evaluation mode
     print(f"Loaded {model_type} model from {model_path}")
