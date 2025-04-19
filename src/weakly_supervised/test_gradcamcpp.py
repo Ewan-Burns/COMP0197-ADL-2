@@ -51,8 +51,13 @@ transform = T.Compose(
 
 dataset = MultiTargetOxfordPet()
 
-# Load model
-model = resnet18(pretrained=True)
+# Determine device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# Load model and move to device
+model = resnet18(weights='DEFAULT') # Use recommended way to load pretrained weights
+model = model.to(device)
 model.eval()
 
 
@@ -60,21 +65,25 @@ model.eval()
 cam_extractor = GradCAMpp(model, target_layer="layer4")  # pick a layer like "layer4"
 
 for _ in range(10):
-    img, masks = dataset[np.random.randint(1000)]
-    input_tensor = img.unsqueeze(0)  # shape: [1, 3, 224, 224]
+    # Get image (already a tensor from dataset) and mask
+    img, masks = dataset[np.random.randint(len(dataset))] # Use len(dataset)
+    input_tensor = img.unsqueeze(0).to(device)  # Move input tensor to device
 
     # Forward pass
-    output = model(input_tensor)
+    with torch.no_grad(): # Use no_grad for inference
+        output = model(input_tensor)
 
     # Generate CAM for the top-1 predicted class
+    # Ensure output is on CPU for numpy operations if needed by torchcam internals or subsequent code
+    output_cpu = output.cpu()
+    class_idx = output_cpu.argmax().item()
 
-    class_idx = output.argmax().item()
-    classes = sorted(enumerate(output.detach().numpy().ravel()), key=lambda s: s[1])[
-        -4:
-    ]
-    classes = [id for id, _ in classes]
+    # Get top classes (optional, for title) - use output_cpu
+    # classes_scores = sorted(enumerate(output_cpu.detach().numpy().ravel()), key=lambda s: s[1], reverse=True)
+    # top_classes_str = ", ".join([f"{idx}" for idx, score in classes_scores[:3]]) # Example: top 3 classes
 
-    activation_map = cam_extractor(class_idx, output)
+    # torchcam expects model output on the same device as the model
+    activation_map = cam_extractor(class_idx, output) # Pass original output tensor (on device)
 
     # Overlay CAM on image
     cam = (
@@ -83,39 +92,42 @@ for _ in range(10):
         )
         .squeeze()
         .squeeze()
+        .cpu() # Move CAM to CPU before numpy conversion
         .numpy()
     )
-    cam_thr = cam > 0.5
+    cam_thr = cam > 0.5 # Thresholding on CPU numpy array
 
-    mean = torch.tensor([0.485, 0.456, 0.406])
-    std = torch.tensor([0.229, 0.224, 0.225])
-    denormalized_image = img * std[:, None, None] + mean[:, None, None]
-    denormalized_image = (
-        denormalized_image * 255
-    )  # Convert back to pixel range [0, 255]
-    denormalized_image = (
-        denormalized_image.permute(1, 2, 0).byte().cpu().numpy()
-    )  # Convert to numpy for CRF
-    crf = apply_crf_to_heatmap(cam, denormalized_image)
+    # Denormalize the original image tensor (img is on CPU)
+    mean_cpu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std_cpu = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    denormalized_image_tensor = img * std_cpu + mean_cpu
+    denormalized_image = (denormalized_image_tensor * 255).byte() # Convert to byte tensor [0, 255]
+    # Permute and convert to numpy for CRF/plotting
+    denormalized_image_np = denormalized_image.permute(1, 2, 0).numpy()
 
-    # Show result
+    # Apply CRF using the numpy image
+    crf = apply_crf_to_heatmap(cam, denormalized_image_np)
+
+    # Show result using the numpy image
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 3, 1)
-    plt.imshow(denormalized_image)
+    plt.imshow(denormalized_image_np) # Show numpy image
     plt.imshow(cam_thr, alpha=0.5)
     plt.axis("off")
-    plt.title(f"Grad-CAM++ for class {classes}")
+    plt.title(f"Grad-CAM++ Overlay (Class {class_idx})") # Use class_idx
 
     plt.subplot(1, 3, 2)
-    plt.imshow(denormalized_image)
+    plt.imshow(denormalized_image_np) # Show numpy image
     plt.imshow(crf, alpha=0.5)
     plt.axis("off")
-    plt.title(f"CRF")
+    plt.title(f"CRF Refinement")
 
     plt.subplot(1, 3, 3)
-    plt.imshow(denormalized_image)
-    plt.imshow(masks.permute(1, 2, 0).numpy(), alpha=0.5)
+    plt.imshow(denormalized_image_np) # Show numpy image
+    # Ensure mask is numpy and correct shape for imshow
+    mask_np = masks.squeeze().cpu().numpy() # Remove channel dim if present, move to CPU
+    plt.imshow(mask_np, alpha=0.5)
     plt.axis("off")
-    plt.title(f"Target segmentation")
+    plt.title(f"Ground Truth Mask")
 
     plt.show()
