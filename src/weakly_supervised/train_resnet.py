@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from PIL import Image
 
 from src.weakly_supervised.resnet import MultiHeadResNet, generate_cams
-from src.weakly_supervised.sec import sec_loss
+from src.utils.sec import sec_loss
 from src.utils.dataset import TrainTestSplit, ResNetTransform
 
 import matplotlib
