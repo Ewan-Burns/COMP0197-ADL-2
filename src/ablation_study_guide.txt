@@ -1,0 +1,79 @@
+# Ablation Study for SEC Weakly-Supervised Segmentation
+
+This documentation explains how to run an ablation study on the Seed, Expand, Constrain (SEC) weakly-supervised segmentation framework.
+
+## Overview
+
+The SEC loss function has three components:
+1. **Seed Loss** (α): Uses Class Activation Maps (CAMs) to guide segmentation
+2. **Expand Loss** (β): Uses image-level labels to enforce class presence 
+3. **Constrain Loss** (γ): Refines predictions using DenseCRF based on image appearance
+
+This ablation study lets you explore how each component contributes to the model's performance.
+
+## File Structure
+
+The ablation study is organized into the following files:
+
+- `src/run_ablation_study.py`: Main script to run the entire ablation study
+- `src/weakly_supervised/ablation_trainer.py`: Functions for training models with different loss weights
+- `src/ablation_evaluator.py`: Functions for evaluating trained models
+- `src/ablation_visualizer.py`: Functions for visualizing and comparing results
+
+## How to Run
+
+### Full Ablation Study
+
+To run the complete ablation study with default settings (5 epochs):
+
+```bash
+python -m src.run_ablation_study
+```
+
+This will:
+1. Train 7 model variants with different loss component weights
+2. Evaluate each model on the test set
+3. Generate visualizations comparing performance
+4. Save models to `./models/` and results to `./results/`
+
+### Customizing Parameters
+
+You can customize the training parameters:
+
+```bash
+python -m src.run_ablation_study --epochs 10 --batch-size 8 --lr 0.0005
+```
+
+### Visualizing Existing Results
+
+If you've already run the study and want to re-visualize the results:
+
+```bash
+python -m src.run_ablation_study --visualize-only
+```
+
+## Configurations Tested
+
+The ablation study tests the following configurations:
+
+1. **Baseline**: α=1.0, β=1.0, γ=0.5 (all components at default weights)
+2. **No Seed**: α=0.0, β=1.0, γ=0.5 (no CAM guidance)
+3. **No Expand**: α=1.0, β=0.0, γ=0.5 (no class presence enforcement)
+4. **No Constrain**: α=1.0, β=1.0, γ=0.0 (no CRF refinement)
+5. **High Seed**: α=2.0, β=1.0, γ=0.5 (emphasis on CAM guidance)
+6. **High Expand**: α=1.0, β=2.0, γ=0.5 (emphasis on class presence)
+7. **High Constrain**: α=1.0, β=1.0, γ=1.0 (emphasis on CRF refinement)
+
+## Outputs
+
+The study produces three main visualizations:
+
+1. **Metric Comparison**: Bar chart comparing mIoU and mDice for all configurations
+2. **Training Curves**: Line charts showing training and validation loss over time
+3. **Component Impact**: Scatter plots showing how each component's weight affects performance
+
+All results are also saved to `./results/ablation_results.csv` for further analysis.
+
+## Extending the Study
+
+To add more configurations, modify the `ablation_configs` list in `src/weakly_supervised/ablation_trainer.py`. Each configuration should have a unique name and weights for α, β, and γ.
