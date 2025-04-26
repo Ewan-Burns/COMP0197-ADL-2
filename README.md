@@ -35,7 +35,7 @@ Implements and evaluates a weakly-supervised segmentation framework based on Cla
 All scripts should be run from the **root directory** of the project using the `python -m` flag, see the example below: 
 
 ```bash
-python -m python -m src.baseline.train_unet
+python -m src.baseline.train_unet
 ```
 
 ### 1. Train Fully-Supervised Baselines
