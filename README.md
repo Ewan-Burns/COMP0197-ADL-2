@@ -122,7 +122,7 @@ This will:
 3. Generate visualizations comparing performance
 4. Save models to `./models/` and ablation study results to `./results/`
 
-##  Customizing Parameters
+### **Customizing Parameters**
 
 You can customize the training parameters (number of epochs/batch size/learning rate):
 
@@ -130,7 +130,7 @@ You can customize the training parameters (number of epochs/batch size/learning 
 python -m src.ablation_study.run_ablation_study --epochs 10 --batch-size 8 --lr 0.0005
 ```
 
-## Visualizing Existing Results
+### **Visualizing Existing Results**
 
 If you've already run the study and want to re-visualize the results:
 
@@ -138,7 +138,7 @@ If you've already run the study and want to re-visualize the results:
 python -m src.ablation_study.run_ablation_study --visualize-only
 ```
 
-## Configurations Tested
+### **Configurations Tested**
 
 The ablation study tests the following configurations:
 
@@ -150,7 +150,7 @@ The ablation study tests the following configurations:
 6. **High Expand**: α=1.0, β=2.0, γ=0.5 (emphasis on class presence)
 7. **High Constrain**: α=1.0, β=1.0, γ=1.0 (emphasis on CRF refinement)
 
-## Outputs
+### **Outputs**
 
 The study produces three main visualizations:
 
@@ -158,6 +158,6 @@ The study produces three main visualizations:
 2. **Training Curves**: Line charts showing training and validation loss over time
 3. **Component Impact**: Scatter plots showing how each component's weight affects performance
 
-## Extending the Study
+### **Extending the Study**
 
 To add more configurations, modify the ablation_configs list in src/weakly_supervised/ablation_trainer.py. Each configuration should have a unique name and weights for α, β, and γ.
