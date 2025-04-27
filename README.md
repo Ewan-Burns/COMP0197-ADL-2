@@ -8,11 +8,13 @@ Implements and evaluates a weakly-supervised segmentation framework based on Cla
 
 -   `src/`:
     -   `MultiTargetOxfordPet.py`: Custom dataset class for handling different target types.
-    -   `baseline/`: Implementations and training scripts for fully-supervised baselines (U-Net, DeepLabV3).
+    -   `baseline/`: Implementations and training scripts for fully-supervised baselines (DeepLabV3).
     -   `weakly_supervised/`: Implementation of the CAM+SEC weakly-supervised approach (ResNet, SEC loss, CAM generation).
     -   `utils/`: Utility functions (dataset transformations, Dice loss).
 -   `data/`: Dataset (downnloaded).
 -   `models/`: Saved model weights.
+-   `results/`: Saved visualised results for ablation study on weakly-supervised model
+    -   `plots/`: Loss curve plots for weakly-supervised models
 
 ## Setup
 
@@ -21,13 +23,18 @@ Implements and evaluates a weakly-supervised segmentation framework based on Cla
     git clone git@github.com:Ewan-Burns/COMP0197-ADL-2.git
     cd COMP0197-ADL-2
     ```
-2.  **Activate the comp0197-cw1 Conda environment:**
+2.  **Create and activate the comp0197-cw1 Conda environment:**
     ```bash
+    conda create -n comp0197-cw1-pt python=3.12 pip
     conda activate comp0197-cw1-pt
     ```
-3.  **Install additional (development) dependencies:**
+3.  **Install torch and torchvision**
     ```bash
-    pip install matplotlib tqdm
+    pip install torch==2.5.0 torchvision --index-url https://download.pytorch.org/whl/cpu
+    ```
+4.  **Install additional (development) dependencies:**
+    ```bash
+    pip install matplotlib tqdm git+https://github.com/lucasb-eyer/pydensecrf.git
     ```
 
 ## Running the Code
@@ -35,23 +42,17 @@ Implements and evaluates a weakly-supervised segmentation framework based on Cla
 All scripts should be run from the **root directory** of the project using the `python -m` flag, see the example below: 
 
 ```bash
-python -m src.baseline.train_unet
+python -m src.baseline.train_baseline_deeplabv3
 ```
 
 ### 1. Train Fully-Supervised Baselines
 
-These scripts train standard segmentation models using the full pixel-level segmentation masks provided in the Oxford-IIIT Pet dataset. They serve as a baseline for comparison with the later weakly-supervised approach. Both scripts train for a fixed num of epochs, save the trained model weights to the `./models/` directory and display some predictions post training.
-
-**U-Net:**
-Trains a U-Net model (common architecture for image segmentation), adapted here for the pet dataset. It uses a combination of Cross-Entropy Loss and Dice Loss for training.
-```bash
-python -m src.baseline.train_unet
-```
+The scripts train standard segmentation models using the full pixel-level segmentation masks provided in the Oxford-IIIT Pet dataset. It serve as a baseline for comparison with the later weakly-supervised approach. The scripts train for a fixed num of epochs, save the trained model weights to the `./models/` directory and display some predictions post training.
 
 **DeepLabV3:**
 This script trains a DeepLabV3 model (architecture for semantic image segmentation) with a ResNet50 backbone (CNN acting as feature extractor). The final classification layer is adapted for the 3 classes (background, cat, dog). It also uses a combination of Cross-Entropy and Dice Loss.
 ```bash
-python -m src.baseline.train_deeplabv3
+python -m src.baseline.train_baseline_deeplabv3
 ```
 
 ### 2. Train Weakly-Supervised Model (ResNet + SEC)
@@ -77,30 +78,86 @@ python -m src.weakly_supervised.test_gradcamcpp
 
 ### 4. Evaluate Trained Models
 
-After training a model and saving the weights (e.g., to `./models/unet_3_classes.pth`), you can evaluate its performance on the test set using the dedicated evaluation script:
+After training a model and saving the weights (e.g., to `./models/deeplabv3_3_classes.pth`), you can evaluate its performance on the test set using the dedicated evaluation script:
 
 ```bash
-python -m src.evaluate --model-type <model_type> --model-path <path_to_pth_file>
+python -m src.utils.evaluate --model-type <model_type> --model-path <path_to_pth_file>
 ```
 
-Replace `<model_type>` with one of `unet`, `deeplabv3`, or `resnet_sec`.
+Replace `<model_type>` with `deeplabv3`, or `resnet_sec`.
 Replace `<path_to_pth_file>` with the actual path to the saved model weights.
 
 The script will load the specified model, run it on the standard test split, and print the calculated mean Intersection over Union (mIoU) and mean Dice Score (mDice), which is equivalent to the mean F1 Score (mF1).
 
 **Examples:**
 
-Evaluating the baseline U-Net:
-```bash
-python -m src.evaluate --model-type unet --model-path ./models/unet_3_classes.pth
-```
-
 Evaluating the baseline DeepLabV3:
 ```bash
-python -m src.evaluate --model-type deeplabv3 --model-path ./models/deep_lab_v3_3_classes.pth
+python -m src.utils.evaluate --model-type deeplabv3 --model-path ./models/deep_lab_v3_3_classes.pth
 ```
 
 Evaluating a weakly-supervised ResNet+SEC model (replace path with the actual saved file):
 ```bash
-python -m src.evaluate --model-type resnet_sec --model-path ./models/weakly_sup_ep10_lr0.0001_a1.0_b1.0_g0.5.pth
+python -m src.utils.evaluate --model-type resnet_sec --model-path ./models/weakly_sup_ep10_lr0.0001_a1.0_b1.0_g0.5.pth
 ```
+
+### 5. Ablation Study on ResNet+SEC model
+
+The ablation study is organized into the following files:
+
+- `src/ablation_study/run_ablation_study.py`: Main script to run the entire ablation study
+- `src/ablation_study/ablation_trainer.py`: Functions for training models with different loss weights
+- `src/ablation_study/ablation_evaluator.py`: Functions for evaluating trained models
+- `src/ablation_study/ablation_visualizer.py`: Functions for visualizing and comparing results
+
+To run the complete ablation study with default settings (5 epochs):
+
+```bash
+python -m src.ablation_study.run_ablation_study
+```
+
+This will:
+1. Train 7 model variants with different loss component weights
+2. Evaluate each model on the test set
+3. Generate visualizations comparing performance
+4. Save models to `./models/` and ablation study results to `./results/`
+
+##  Customizing Parameters
+
+You can customize the training parameters (number of epochs/batch size/learning rate):
+
+```bash
+python -m src.ablation_study.run_ablation_study --epochs 10 --batch-size 8 --lr 0.0005
+```
+
+## Visualizing Existing Results
+
+If you've already run the study and want to re-visualize the results:
+
+```bash
+python -m src.ablation_study.run_ablation_study --visualize-only
+```
+
+## Configurations Tested
+
+The ablation study tests the following configurations:
+
+1. **Baseline**: α=1.0, β=1.0, γ=0.5 (all components at default weights)
+2. **No Seed**: α=0.0, β=1.0, γ=0.5 (no CAM guidance)
+3. **No Expand**: α=1.0, β=0.0, γ=0.5 (no class presence enforcement)
+4. **No Constrain**: α=1.0, β=1.0, γ=0.0 (no CRF refinement)
+5. **High Seed**: α=2.0, β=1.0, γ=0.5 (emphasis on CAM guidance)
+6. **High Expand**: α=1.0, β=2.0, γ=0.5 (emphasis on class presence)
+7. **High Constrain**: α=1.0, β=1.0, γ=1.0 (emphasis on CRF refinement)
+
+## Outputs
+
+The study produces three main visualizations:
+
+1. **Metric Comparison**: Bar chart comparing mIoU and mDice for all configurations
+2. **Training Curves**: Line charts showing training and validation loss over time
+3. **Component Impact**: Scatter plots showing how each component's weight affects performance
+
+## Extending the Study
+
+To add more configurations, modify the ablation_configs list in src/weakly_supervised/ablation_trainer.py. Each configuration should have a unique name and weights for α, β, and γ.
