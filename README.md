@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implements and evaluates a weakly-supervised segmentation framework based on Class Activation Maps (CAMs) and the Seed, Expand, Constrain (SEC) methodology. Also includes fully-supervised baseline models (U-Net and DeepLabV3) for comparison.
+Implements and evaluates a weakly-supervised segmentation framework based on Class Activation Maps (CAMs) and the Seed, Expand, Constrain (SEC) methodology. Also includes fully-supervised baseline model (DeepLabV3) for comparison.
 
 ## Project Structure
 
