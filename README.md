@@ -11,6 +11,7 @@ Implements and evaluates a weakly-supervised segmentation framework based on Cla
     -   `baseline/`: Implementations and training scripts for fully-supervised baselines (DeepLabV3).
     -   `weakly_supervised/`: Implementation of the CAM+SEC weakly-supervised approach (ResNet, SEC loss, CAM generation).
     -   `utils/`: Utility functions (dataset transformations, Dice loss).
+    -   `evaluate.py`: evaluate models' performance with Intersection over Union (mIoU) and mean Dice Score (mDice).
 -   `data/`: Dataset (downnloaded).
 -   `models/`: Saved model weights.
 -   `results/`: Saved visualised results for ablation study on weakly-supervised model
@@ -81,7 +82,7 @@ python -m src.weakly_supervised.test_gradcamcpp
 After training a model and saving the weights (e.g., to `./models/deeplabv3_3_classes.pth`), you can evaluate its performance on the test set using the dedicated evaluation script:
 
 ```bash
-python -m src.utils.evaluate --model-type <model_type> --model-path <path_to_pth_file>
+python -m src.evaluate --model-type <model_type> --model-path <path_to_pth_file>
 ```
 
 Replace `<model_type>` with `deeplabv3`, or `resnet_sec`.
@@ -93,12 +94,12 @@ The script will load the specified model, run it on the standard test split, and
 
 Evaluating the baseline DeepLabV3:
 ```bash
-python -m src.utils.evaluate --model-type deeplabv3 --model-path ./models/deep_lab_v3_3_classes.pth
+python -m src.evaluate --model-type deeplabv3 --model-path ./models/deep_lab_v3_3_classes.pth
 ```
 
 Evaluating a weakly-supervised ResNet+SEC model (replace path with the actual saved file):
 ```bash
-python -m src.utils.evaluate --model-type resnet_sec --model-path ./models/weakly_sup_ep10_lr0.0001_a1.0_b1.0_g0.5.pth
+python -m src.evaluate --model-type resnet_sec --model-path ./models/weakly_sup_ep10_lr0.0001_a1.0_b1.0_g0.5.pth
 ```
 
 ### 5. Ablation Study on ResNet+SEC model
