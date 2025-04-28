@@ -7,15 +7,7 @@ from torchcam.utils import overlay_mask
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
-import pydensecrf.densecrf as dcrf
-from pydensecrf.utils import (
-    unary_from_softmax,
-    create_pairwise_bilateral,
-    create_pairwise_gaussian,
-)
-
 from src.MultiTargetOxfordPet import OxfordIIITPet, MultiTargetOxfordPet
-from src.utils.sec import apply_crf_to_heatmap
 
 
 def Main():

@@ -50,16 +50,6 @@ class SECLoss(nn.Module):
         self.mean = torch.tensor([0.485, 0.456, 0.406]).cuda()
         self.std = torch.tensor([0.229, 0.224, 0.225]).cuda()
 
-    def denorm_image(self, image):
-
-        denormalized_image = image * self.std[:, None, None] + self.mean[:, None, None]
-        denormalized_image = (
-            denormalized_image * 255
-        )  # Convert back to pixel range [0, 255]
-        return (
-            denormalized_image.permute(1, 2, 0).byte().cpu().numpy()
-        )  # Convert to numpy for CRF
-
     def seed_loss(self, pred_mask, seed_mask):
         """
         pred_mask: (N, C, H, W) - model output (after softmax)
@@ -79,20 +69,6 @@ class SECLoss(nn.Module):
         loss = F.cross_entropy(pred_max, labels)
         return loss
 
-    def apply_dense_crf(self, image, probs):
-        """
-        image: (H, W, 3)
-        probs: (C, H, W)
-        """
-        H, W = image.shape[:2]
-        d = dcrf.DenseCRF2D(W, H, probs.shape[0])
-        unary = unary_from_softmax(probs)
-        d.setUnaryEnergy(unary)
-        d.addPairwiseGaussian(sxy=3, compat=3)
-        d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=image.copy(order="C"), compat=10)
-        Q = d.inference(5)
-        return np.array(Q).reshape((probs.shape[0], H, W))
-
     def constrain_loss(self, pred_mask, image):
         """
         pred_mask: (N, C, H, W)
@@ -101,7 +77,7 @@ class SECLoss(nn.Module):
         loss = 0
         for i in range(pred_mask.size(0)):
             probs = pred_mask[i].detach().cpu().numpy()
-            crf_output = self.apply_dense_crf(self.denorm_image(image[i]), probs)
+            crf_output = apply_dense_crf(denorm_image(image[i]), probs)
             crf_output = torch.tensor(crf_output).to(pred_mask.device)
             pred = pred_mask[i]
             loss += F.kl_div(pred.log(), crf_output, reduction="batchmean")
@@ -122,3 +98,31 @@ class SECLoss(nn.Module):
             self.alpha * L_seed + self.beta * L_expand + self.gamma * L_constrain
         )
         return total_loss
+
+
+def denorm_image(image):
+    mean = torch.tensor([0.485, 0.456, 0.406]).cuda()
+    std = torch.tensor([0.229, 0.224, 0.225]).cuda()
+
+    denormalized_image = image * std[:, None, None] + mean[:, None, None]
+    denormalized_image = (
+        denormalized_image * 255
+    )  # Convert back to pixel range [0, 255]
+    return (
+        denormalized_image.permute(1, 2, 0).byte().cpu().numpy()
+    )  # Convert to numpy for CRF
+
+
+def apply_dense_crf(image, probs):
+    """
+    image: (H, W, 3)
+    probs: (C, H, W)
+    """
+    H, W = image.shape[:2]
+    d = dcrf.DenseCRF2D(W, H, probs.shape[0])
+    unary = unary_from_softmax(probs)
+    d.setUnaryEnergy(unary)
+    d.addPairwiseGaussian(sxy=3, compat=3)
+    d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=image.copy(order="C"), compat=10)
+    Q = d.inference(5)
+    return np.array(Q).reshape((probs.shape[0], H, W))

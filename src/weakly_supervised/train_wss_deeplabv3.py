@@ -12,7 +12,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from src.MultiTargetOxfordPet import MultiTargetOxfordPet
 from src.utils.dataset import TrainTestSplit
-from src.utils.loss import SECLoss, DiceLoss
+from src.utils.loss import SECLoss, DiceLoss, apply_dense_crf, denorm_image
 from src.weakly_supervised.wss_deeplabv3 import WSSDeepLabV3
 import pydensecrf.densecrf as dcrf
 from pydensecrf.utils import (
@@ -20,34 +20,6 @@ from pydensecrf.utils import (
     create_pairwise_bilateral,
     create_pairwise_gaussian,
 )
-
-
-def denorm_image(image):
-    mean = torch.tensor([0.485, 0.456, 0.406]).cuda()
-    std = torch.tensor([0.229, 0.224, 0.225]).cuda()
-
-    denormalized_image = image * std[:, None, None] + mean[:, None, None]
-    denormalized_image = (
-        denormalized_image * 255
-    )  # Convert back to pixel range [0, 255]
-    return (
-        denormalized_image.permute(1, 2, 0).byte().cpu().numpy()
-    )  # Convert to numpy for CRF
-
-
-def apply_dense_crf(image, probs):
-    """
-    image: (H, W, 3)
-    probs: (C, H, W)
-    """
-    H, W = image.shape[:2]
-    d = dcrf.DenseCRF2D(W, H, probs.shape[0])
-    unary = unary_from_softmax(probs)
-    d.setUnaryEnergy(unary)
-    d.addPairwiseGaussian(sxy=3, compat=3)
-    d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=image.copy(order="C"), compat=10)
-    Q = d.inference(5)
-    return np.array(Q).reshape((probs.shape[0], H, W))
 
 
 def show_prediction(img_tensor, mask_pred, act_mask, output, cam):
@@ -116,14 +88,13 @@ def TrainClassifier(train_loader, num_epochs=5, out_name=""):
     return model
 
 
-def TrainModel(num_epochs=5, out_name="", out_classifier_name=""):
+def TrainModel(num_epochs=5, out_name=""):
     dataset = MultiTargetOxfordPet()
     train_set, test_set = TrainTestSplit(dataset, 0.8)
 
     train_loader = DataLoader(train_set, batch_size=6, shuffle=True, num_workers=6)
     test_loader = DataLoader(train_set, batch_size=6, num_workers=6)
 
-    # classifier = TrainClassifier(train_loader, num_epochs, out_classifier_name)
     classifier = resnet18(pretrained=True).cuda()
     cam_extractor = GradCAMpp(classifier, "layer4")
 
@@ -192,10 +163,6 @@ def TrainModel(num_epochs=5, out_name="", out_classifier_name=""):
 
                 cam[batch_id, :, :] = torch.argmax(crf_output, 0)
 
-            labels_onehot = (
-                torch.nn.functional.one_hot(labels, num_classes=3).float().cuda()
-            )
-
             loss = dice(probs, cam)
             loss.backward()
             optimizer.step()
@@ -252,7 +219,6 @@ def LoadClassifier(model_path):
 def Main():
 
     model_path = "./models/wss_deep_lab_v3_3_classes.pth"
-    classifier_path = "./models/classifier_resnet18_3_classes.pth"
     # model = LoadModel(model_path)
     model = TrainModel(num_epochs=5, out_name=model_path)
 

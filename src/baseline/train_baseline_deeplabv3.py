@@ -11,39 +11,11 @@ import matplotlib.pyplot as plt
 from src.MultiTargetOxfordPet import MultiTargetOxfordPet
 from src.utils.dataset import TrainTestSplit
 from src.utils.loss import DiceLoss
-
-
-def show_prediction(img_tensor, mask_pred, act_mask, output):
-    img = img_tensor.permute(1, 2, 0).cpu().numpy()
-    mask = mask_pred.cpu().numpy()
-    target = act_mask.squeeze().cpu().numpy()
-
-    dice_loss = DiceLoss()
-    loss = dice_loss(output, act_mask)
-
-    plt.figure(figsize=(10, 4))
-    plt.subplot(1, 3, 1)
-    plt.imshow(img)
-    plt.title("Image")
-    plt.axis("off")
-
-    plt.subplot(1, 3, 2)
-    plt.imshow(img)
-    plt.imshow(mask, alpha=0.5)
-    plt.title(f"Predicted Segmentation {1 - loss.item():.2f}")
-    plt.axis("off")
-
-    plt.subplot(1, 3, 3)
-    plt.imshow(img)
-    plt.imshow(target, alpha=0.5)
-    plt.title("Target Segmentation")
-    plt.axis("off")
-    plt.show()
+from src.utils.viz import show_prediction
 
 
 def CreateDeepLabV3(num_classes):
-    model = models.deeplabv3_resnet50(pretrained=True)
-    model.classifier[4] = torch.nn.Conv2d(256, num_classes, kernel_size=1)
+    model = models.deeplabv3_resnet50(pretrained_backbone=True, num_classes=num_classes)
     return model
 
 
@@ -68,7 +40,7 @@ def TrainModel(num_epochs=5, loss_balance=np.array([0.5, 0.5]), out_name=""):
 
         bar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=True)
 
-        for imgs, masks in bar:
+        for imgs, masks, _ in bar:
             imgs = imgs.cuda()
             masks = masks.squeeze(1).cuda()
 
@@ -94,7 +66,7 @@ def TrainModel(num_epochs=5, loss_balance=np.array([0.5, 0.5]), out_name=""):
         running_ce_loss = 0.0
         bar = tqdm(test_loader, desc=f"Validation", leave=True)
 
-        for imgs, masks in bar:
+        for imgs, masks, _ in bar:
             imgs = imgs.cuda()
             masks = masks.squeeze(1).cuda()
 
@@ -123,7 +95,7 @@ def TestModel(model, train_set):
     with torch.no_grad():
         for i in range(50):
             idx = np.random.randint(len(train_set))
-            img, mask = train_set[idx]
+            img, mask, _ = train_set[idx]
             img = img.cuda()
             mask = mask.cuda()
             output = model(img.unsqueeze(0))["out"]
@@ -139,13 +111,16 @@ def LoadModel(model_path):
 
 def Main():
 
-    model_path = "./models/deep_lab_v3_3_classes.pth"
-    model = LoadModel(model_path)
-    # model = TrainModel(num_epochs=5, out_name=model_path)
+    model_path = "./models/baseline_deep_lab_v3_3_classes.pth"
+    # model = LoadModel(model_path)
+    model = TrainModel(num_epochs=5, out_name=model_path)
 
     train_set = MultiTargetOxfordPet()
     TestModel(model, train_set)
 
 
 if __name__ == "__main__":
+    torch.manual_seed(42)
+    np.random.seed(42)
+
     Main()
