@@ -34,7 +34,7 @@ def show_prediction(img_tensor, mask_pred, act_mask, output, cam):
     plt.subplot(1, 4, 2)
     plt.imshow(img)
     plt.imshow(cam_cpu, alpha=0.5)
-    plt.title(f"GradCAM+CRF {1 - cam_loss.item():.2f} DICE")
+    plt.title(f"BOX: {1 - cam_loss.item():.2f} DICE")
     plt.axis("off")
 
     plt.subplot(1, 4, 3)

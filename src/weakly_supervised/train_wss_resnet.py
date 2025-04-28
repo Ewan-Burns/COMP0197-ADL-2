@@ -102,8 +102,7 @@ def TestModel(model, train_set):
             mode="bilinear",
         )
 
-        crf = batched_cam_to_crf(cam, img.unsqueeze(0), label.unsqueeze())
-
+        crf = batched_cam_to_crf(cam, img.unsqueeze(0), [label])
         pred = output.argmax(1).cpu().squeeze(0)
         show_prediction(img, pred, mask, output, crf)
 
