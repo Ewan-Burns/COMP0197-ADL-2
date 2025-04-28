@@ -9,9 +9,8 @@ from src.utils.dataset import TrainTestSplit
 from src.utils.metrics import calculate_iou, calculate_miou, calculate_dice, calculate_mdice
 from src.baseline.train_baseline_deeplabv3 import CreateDeepLabV3 
 from src.weakly_supervised.resnet import MultiHeadResNet
-from src.utils.device import get_device
 
-device = get_device()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def load_model(model_type, model_path, num_classes, device):
     """Loads the specified model architecture and state dict."""
