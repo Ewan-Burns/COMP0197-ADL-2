@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from src.weakly_supervised.resnet import MultiHeadResNet
 from src.utils.dataset import TrainTestSplit
 from src.MultiTargetOxfordPet import MultiTargetOxfordPet
-from src.utils.evaluate import evaluate
+from src.evaluate import evaluate
 
 
 def evaluate_model(model_path, num_classes=3):
