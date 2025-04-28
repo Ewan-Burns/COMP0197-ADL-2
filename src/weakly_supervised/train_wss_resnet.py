@@ -14,7 +14,7 @@ from torchvision.models import resnet18
 from src.weakly_supervised.resnet import MultiHeadResNet
 from src.utils.dataset import TrainTestSplit, ResNetTransform
 from src.utils.loss import DiceLoss, apply_dense_crf, denorm_image, batched_cam_to_crf
-from src.utils.viz import show_prediction
+# from src.utils.viz import show_prediction
 from src.MultiTargetOxfordPet import MultiTargetOxfordPet
 
 
@@ -105,7 +105,7 @@ def TestModel(model, train_set):
         crf = batched_cam_to_crf(cam, img.unsqueeze(0), label.unsqueeze())
 
         pred = output.argmax(1).cpu().squeeze(0)
-        show_prediction(img, pred, mask, output, crf)
+        # show_prediction(img, pred, mask, output, crf)
 
 
 def LoadModel(model_path):
@@ -116,8 +116,8 @@ def LoadModel(model_path):
 
 def Main():
     model_path = "./models/wss_resnet_3_classes.pth"
-    model = LoadModel(model_path)
-    # model = TrainModel(num_epochs=1, out_name=model_path)
+    # model = LoadModel(model_path)
+    model = TrainModel(num_epochs=1, out_name=model_path)
 
     train_set = MultiTargetOxfordPet()
     TestModel(model, train_set)

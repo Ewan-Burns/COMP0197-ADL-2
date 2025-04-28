@@ -33,7 +33,7 @@ class MultiTargetOxfordPet(Dataset):
 
     def __getitem__(self, item):
         image, (mask, category) = self.base[item]
-        mask = (np.array(mask) != 2).astype(np.long)
+        mask = (np.array(mask) != 2).astype(np.int_)
 
         shifted_category = category + 1
         mask *= shifted_category

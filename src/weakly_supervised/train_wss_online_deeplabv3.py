@@ -114,9 +114,9 @@ def LoadModel(model_path):
 
 def Main():
 
-    model_path = "./models/wss_deep_lab_v3_3_classes.pth"
-    model = LoadModel(model_path)
-    # model = TrainModel(num_epochs=3, out_name=model_path)
+    model_path = "./models/wss_online_deep_lab_v3_3_classes.pth"
+    # model = LoadModel(model_path)
+    model = TrainModel(num_epochs=3, out_name=model_path)
 
     train_set = MultiTargetOxfordPet()
     TestModel(model, train_set)

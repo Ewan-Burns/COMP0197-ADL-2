@@ -184,8 +184,8 @@ def LoadClassifier(model_path):
 def Main():
 
     model_path = "./models/wss_deep_lab_v3_3_classes.pth"
-    model = LoadModel(model_path)
-    # model = TrainModel(num_epochs=5, out_name=model_path)
+    # model = LoadModel(model_path)
+    model = TrainModel(num_epochs=5, out_name=model_path)
 
     train_set = MultiTargetOxfordPet(random_vflip=False)
     TestModel(model, train_set)

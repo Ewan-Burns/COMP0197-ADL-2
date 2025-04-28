@@ -14,6 +14,8 @@ from src.utils.metrics import (
 )
 from src.weakly_supervised.resnet import MultiHeadResNet
 from src.weakly_supervised.wss_deeplabv3 import WSSDeepLabV3
+# from src.baseline.train_deeplabv3 import CreateDeepLabV3 
+
 
 
 def load_model(model_type, model_path, num_classes, device):
