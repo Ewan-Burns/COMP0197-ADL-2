@@ -27,6 +27,8 @@ Implements and evaluates a weakly-supervised segmentation framework based on Cla
 2.  **Create and activate the comp0197-cw1 Conda environment:**
     ```bash
     conda create -n comp0197-cw1-pt python=3.12 pip
+    ```
+    ```bash
     conda activate comp0197-cw1-pt
     ```
 3.  **Install torch and torchvision**
