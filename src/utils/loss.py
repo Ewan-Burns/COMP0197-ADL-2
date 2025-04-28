@@ -126,3 +126,33 @@ def apply_dense_crf(image, probs):
     d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=image.copy(order="C"), compat=10)
     Q = d.inference(5)
     return np.array(Q).reshape((probs.shape[0], H, W))
+
+
+def batched_cam_to_crf(cam, imgs, labels):
+    out = torch.zeros(
+        (
+            imgs.size(0),
+            imgs.size(2),
+            imgs.size(3),
+        ),
+        dtype=torch.long,
+    ).cuda()
+
+    for batch_id in range(imgs.size(0)):
+        crf_input = np.zeros((3, imgs.size(2), imgs.size(3)))
+        crf_input[labels[batch_id]] = cam[batch_id].detach().cpu().numpy()
+
+        background = 1.0 - np.max(crf_input, axis=0, keepdims=True)
+        background = np.clip(background, 0, 1)
+
+        crf_input[0] = background
+
+        eps = 1e-8
+        crf_input = crf_input / (np.sum(crf_input, axis=0, keepdims=True) + eps)
+
+        crf_output = apply_dense_crf(denorm_image(imgs[batch_id]), crf_input)
+        crf_output = torch.tensor(crf_output).cuda()
+
+        out[batch_id] = torch.argmax(crf_output, 0)
+
+    return out

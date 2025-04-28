@@ -9,52 +9,17 @@ from torchcam.methods import GradCAMpp
 from torchvision.models import resnet18
 from tqdm import tqdm
 
-import matplotlib.pyplot as plt
 from src.MultiTargetOxfordPet import MultiTargetOxfordPet
 from src.utils.dataset import TrainTestSplit
-from src.utils.loss import SECLoss, DiceLoss, apply_dense_crf, denorm_image
-from src.weakly_supervised.wss_deeplabv3 import WSSDeepLabV3
-import pydensecrf.densecrf as dcrf
-from pydensecrf.utils import (
-    unary_from_softmax,
-    create_pairwise_bilateral,
-    create_pairwise_gaussian,
+from src.utils.loss import (
+    SECLoss,
+    DiceLoss,
+    apply_dense_crf,
+    denorm_image,
+    batched_cam_to_crf,
 )
-
-
-def show_prediction(img_tensor, mask_pred, act_mask, output, cam):
-    img = img_tensor.permute(1, 2, 0).cpu().numpy()
-    mask = mask_pred.cpu().numpy()
-    target = act_mask.squeeze().cpu().numpy()
-    cam = cam.cpu().numpy()
-
-    dice_loss = DiceLoss()
-    loss = dice_loss(output, act_mask)
-
-    plt.figure(figsize=(15, 6))
-    plt.subplot(1, 4, 1)
-    plt.imshow(img)
-    plt.title("Image")
-    plt.axis("off")
-
-    plt.subplot(1, 4, 2)
-    plt.imshow(img)
-    plt.imshow(cam, alpha=0.5)
-    plt.title(f"CAM {1 - loss.item():.2f}")
-    plt.axis("off")
-
-    plt.subplot(1, 4, 3)
-    plt.imshow(img)
-    plt.imshow(mask, alpha=0.5)
-    plt.title(f"Predicted Segmentation {1 - loss.item():.2f}")
-    plt.axis("off")
-
-    plt.subplot(1, 4, 4)
-    plt.imshow(img)
-    plt.imshow(target, alpha=0.5)
-    plt.title("Target Segmentation")
-    plt.axis("off")
-    plt.show()
+from src.utils.viz import show_prediction
+from src.weakly_supervised.wss_deeplabv3 import WSSDeepLabV3
 
 
 def TrainClassifier(train_loader, num_epochs=5, out_name=""):
@@ -101,8 +66,6 @@ def TrainModel(num_epochs=5, out_name=""):
     model = WSSDeepLabV3(num_classes=3)
     model = model.cuda()
 
-    # Weakly supervised loss
-    sec = SECLoss()
     dice = DiceLoss()
 
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -126,7 +89,7 @@ def TrainModel(num_epochs=5, out_name=""):
 
             class_idx = torch.argmax(classifier_output, 1)
             activation_map = cam_extractor(
-                list(class_idx.cpu().numpy()), classifier_output, retain_graph=True
+                list(class_idx.cpu().numpy()), classifier_output
             )
             c = F.interpolate(
                 activation_map[0].unsqueeze(0),
@@ -183,7 +146,7 @@ def TestModel(model, train_set):
 
     for i in range(50):
         idx = np.random.randint(len(train_set))
-        img, mask, _ = train_set[idx]
+        img, mask, label = train_set[idx]
         img = img.cuda()
         mask = mask.cuda()
         output = model(img.unsqueeze(0))
@@ -193,7 +156,8 @@ def TestModel(model, train_set):
         classifier_output = classifier(img.unsqueeze(0))
         class_idx = torch.argmax(classifier_output, 1)
         activation_map = cam_extractor(
-            list(class_idx.cpu().numpy()), classifier_output, retain_graph=True
+            list(class_idx.cpu().numpy()),
+            classifier_output,
         )
         cam = F.interpolate(
             activation_map[0].unsqueeze(0),
@@ -201,7 +165,8 @@ def TestModel(model, train_set):
             mode="bilinear",
         ).squeeze()
 
-        show_prediction(img, pred, mask, output, cam)
+        crf = batched_cam_to_crf(cam.unsqueeze(0), img.unsqueeze(0), [label])
+        show_prediction(img, pred, mask, output, crf)
 
 
 def LoadModel(model_path):
@@ -219,10 +184,10 @@ def LoadClassifier(model_path):
 def Main():
 
     model_path = "./models/wss_deep_lab_v3_3_classes.pth"
-    # model = LoadModel(model_path)
-    model = TrainModel(num_epochs=5, out_name=model_path)
+    model = LoadModel(model_path)
+    # model = TrainModel(num_epochs=5, out_name=model_path)
 
-    train_set = MultiTargetOxfordPet()
+    train_set = MultiTargetOxfordPet(random_vflip=False)
     TestModel(model, train_set)
 
 
