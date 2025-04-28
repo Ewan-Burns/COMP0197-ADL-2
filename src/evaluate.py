@@ -37,7 +37,7 @@ def evaluate(model, dataloader, device, num_classes):
     all_dices = []
     with torch.no_grad():
         bar = tqdm(dataloader, desc="Evaluating", leave=False)
-        for images, masks in bar:
+        for images, masks, _ in bar:
             images = images.to(device)
             masks = masks.squeeze(1).long().to(device) # N, H, W
 
