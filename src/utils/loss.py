@@ -41,7 +41,7 @@ class SmoothDiceLoss(DiceLoss):
 
 
 class SECLoss(nn.Module):
-    def __init__(self, alpha=1.0, beta=0.5, gamma=0.5):
+    def __init__(self, alpha=2.0, beta=1.0, gamma=0.5):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
