@@ -15,6 +15,7 @@ from src.utils.random_utils import set_seed, worker_init_fn
 # Set fixed random seed
 SEED = 42
 set_seed(SEED)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train_with_weights(alpha, beta, gamma, num_epochs=5, lr=1e-4, batch_size=16):
     """Train the weakly-supervised model with specific loss component weights."""
