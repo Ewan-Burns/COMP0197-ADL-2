@@ -223,7 +223,7 @@ def run_ablation_study(num_epochs=5, lr=1e-4, batch_size=16, seed=42):
         training_histories[config['name']] = history
         
         # Evaluate model
-        from src.ablation_evaluator import evaluate_model
+        from src.ablation_study.ablation_evaluator import evaluate_model
         miou, mdice = evaluate_model(save_path)
         
         results[config['name']] = {
